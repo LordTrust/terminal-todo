@@ -1,33 +1,28 @@
 services:
   app:
     build: .
-    environment:
-      PORT: 8080
-      DATABASE_PATH: /app/data/terminal_todo.db
-    volumes:
-      - terminal_todo_data:/app/data
+    init: true
+    ports:
+      - "${PORT}:${PORT}"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
+      - traefik.http.services.${COMPOSE_PROJECT_NAME}-svc.loadbalancer.server.port=${PORT}
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.rule=Host(`${TRAEFIK_HOST}`) && (PathPrefix(`${PATH_PREFIX}`) || Path(`${PATH_PREFIX}`))
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.tls.certresolver=letsencrypt
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.priority=100
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.middlewares=${COMPOSE_PROJECT_NAME}-strip
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.service=${COMPOSE_PROJECT_NAME}-svc
+      - traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-strip.stripprefix.prefixes=${PATH_PREFIX}
+    env_file:
+      - .env
     restart: unless-stopped
+    volumes:
+      - ./data:/app/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      test: ["CMD-SHELL", "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ['PORT'] + '/health')\""]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${TRAEFIK_HOST}`) && (PathPrefix(`${PATH_PREFIX}`) || Path(`${PATH_PREFIX}`))
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.middlewares=${COMPOSE_PROJECT_NAME}-strip
-      - traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-strip.stripprefix.prefixes=${PATH_PREFIX}
-      - traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8080
-      - traefik.docker.network=traefik-proxy
-    networks:
-      - traefik-proxy
-
-volumes:
-  terminal_todo_data:
-
-networks:
-  traefik-proxy:
-    external: true

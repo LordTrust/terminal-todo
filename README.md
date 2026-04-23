@@ -37,13 +37,12 @@ Das ist für deinen Fall sinnvoll, weil:
 terminal-todo-app/
 ├── .dockerignore
 ├── .env.example
+├── .env.hostinger-path.example
 ├── app.js
 ├── Dockerfile
 ├── HOSTINGER-PATH.md
 ├── HOSTINGER.md
-├── docker-compose.hostinger-path.yml
 ├── docker-compose.hostinger-traefik.example.yml
-├── docker-compose.hostinger.yml
 ├── docker-compose.yml
 ├── index.html
 ├── README.md
@@ -169,39 +168,34 @@ Beispielidee:
 - `todo.deinedomain.de` → Reverse Proxy
 - Reverse Proxy → `terminal-todo:8080`
 
-Für Hostinger Docker Manager + Traefik liegt jetzt eine direkt passende Compose-Datei bei:
+Für Hostinger Docker Manager + Traefik ist die Hauptdatei jetzt:
 
 ```text
-docker-compose.hostinger.yml
+docker-compose.yml
 ```
 
-Zusätzlich:
-
-```text
-.env.hostinger.example
-HOSTINGER.md
-```
-
-Diese Variante orientiert sich am aktuellen Hostinger-Traefik-Muster mit:
-
-```text
-${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}
-```
-
-Wenn du willst, passe ich dir das auch direkt auf deine echte Domain an.
-
-Zusätzlich gibt es jetzt auch eine pfadbasierte Hostinger-Variante für URLs wie:
+Sie ist bewusst an das bestehende OpenClaw-Compose-Muster angelehnt und für pfadbasierten Zugriff vorbereitet, zum Beispiel:
 
 ```text
 https://apps.deinedomain.de/terminal-todo/
 ```
 
-Dateien dafür:
+Dazu passend:
 
 ```text
-docker-compose.hostinger-path.yml
 .env.hostinger-path.example
 HOSTINGER-PATH.md
+```
+
+Technisch nutzt die Datei jetzt denselben Stil wie das bestehende Hostinger-OpenClaw-Setup:
+
+```text
+init: true
+ports: - "${PORT}:${PORT}"
+env_file: .env
+traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
+traefik-http-service = ${COMPOSE_PROJECT_NAME}-svc
+./data:/app/data
 ```
 
 ## Backup-Empfehlung
