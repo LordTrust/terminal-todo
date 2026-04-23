@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    environment:
+      PORT: 8080
+      DATABASE_PATH: /app/data/terminal_todo.db
+    volumes:
+      - terminal_todo_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt
+      - traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8080
+      - traefik.docker.network=traefik-proxy
+    networks:
+      - traefik-proxy
+
+volumes:
+  terminal_todo_data:
+
+networks:
+  traefik-proxy:
+    external: true

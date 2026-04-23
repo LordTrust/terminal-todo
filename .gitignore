@@ -1,0 +1,6 @@
+.venv/
+.vendor/
+.deploy_keys/
+__pycache__/
+*.pyc
+data/

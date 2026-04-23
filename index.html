@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terminal ToDo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="screen">
+      <header class="terminal-header">
+        <div>
+          <p class="eyebrow">terminal://todo-sync</p>
+          <h1>Terminal ToDo</h1>
+        </div>
+        <div class="header-status">
+          <span class="status-pill" id="taskCounter">0 tasks</span>
+          <span class="status-pill" id="syncStatus">syncing...</span>
+          <span class="status-pill" id="clock">--:--:--</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel composer-panel">
+          <div class="panel-title">Neue Aufgabe</div>
+          <form id="taskForm" class="task-form">
+            <label>
+              <span>Task</span>
+              <input id="taskInput" name="task" type="text" maxlength="140" placeholder="z.B. Docker-Deployment vorbereiten" required />
+            </label>
+
+            <div class="grid-two">
+              <label>
+                <span>Symbol-Stil</span>
+                <select id="symbolPreset" name="symbolPreset"></select>
+              </label>
+              <label>
+                <span>Task-Farbe</span>
+                <input id="taskColor" name="taskColor" type="color" value="#ff9e3d" />
+              </label>
+            </div>
+
+            <div class="grid-two">
+              <label>
+                <span>Offen</span>
+                <input id="customOpenSymbol" name="customOpenSymbol" type="text" maxlength="10" placeholder="[ ]" />
+              </label>
+              <label>
+                <span>Erledigt</span>
+                <input id="customDoneSymbol" name="customDoneSymbol" type="text" maxlength="10" placeholder="[X]" />
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-btn">Task hinzufügen</button>
+              <button type="button" id="clearDoneBtn" class="ghost-btn">Erledigte löschen</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel settings-panel">
+          <div class="panel-title">Theme & Verhalten</div>
+          <div class="settings-grid">
+            <label>
+              <span>Akzentfarbe</span>
+              <input id="accentColor" type="color" value="#ff9e3d" />
+            </label>
+            <label>
+              <span>Hintergrund</span>
+              <input id="backgroundColor" type="color" value="#101315" />
+            </label>
+            <label>
+              <span>Panel</span>
+              <input id="panelColor" type="color" value="#171c1f" />
+            </label>
+            <label>
+              <span>Text</span>
+              <input id="textColor" type="color" value="#ebf2ed" />
+            </label>
+            <label>
+              <span>Erledigt</span>
+              <input id="doneColor" type="color" value="#5d7a68" />
+            </label>
+            <label class="toggle-row">
+              <span>Offene zuerst</span>
+              <input id="sortOpenFirst" type="checkbox" checked />
+            </label>
+          </div>
+          <div class="settings-actions">
+            <button type="button" id="resetThemeBtn" class="ghost-btn">Orange Theme</button>
+          </div>
+        </section>
+
+        <section class="panel list-panel">
+          <div class="list-toolbar">
+            <div class="panel-title">Aufgabenliste</div>
+            <div class="filters" id="filters">
+              <button class="filter-btn active" data-filter="all" type="button">Alle</button>
+              <button class="filter-btn" data-filter="open" type="button">Offen</button>
+              <button class="filter-btn" data-filter="done" type="button">Erledigt</button>
+            </div>
+          </div>
+          <ul id="taskList" class="task-list"></ul>
+          <div id="emptyState" class="empty-state">
+            Noch keine Tasks. Fang mit etwas Schönem an.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="taskItemTemplate">
+      <li class="task-item">
+        <button class="task-toggle" type="button"></button>
+        <div class="task-content">
+          <div class="task-text"></div>
+          <div class="task-meta"></div>
+        </div>
+        <div class="task-actions">
+          <input class="task-color-input" type="color" />
+          <button class="ghost-btn small-btn task-delete" type="button">löschen</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
