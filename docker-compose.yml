@@ -5,14 +5,13 @@ services:
     ports:
       - "${PORT}:${PORT}"
     labels:
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
-        - traefik.http.services.${COMPOSE_PROJECT_NAME}-svc.loadbalancer.server.port=${PORT}
-        - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.rule=Host(`${TRAEFIK_HOST}`)
-        - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.entrypoints=websecure
-        - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.tls.certresolver=letsencrypt
-        - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.service=${COMPOSE_PROJECT_NAME}-svc
+      - traefik.enable=true
+      - traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
+      - traefik.http.services.${COMPOSE_PROJECT_NAME}-svc.loadbalancer.server.port=${PORT}
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.rule=Host(`${TRAEFIK_HOST}`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.entrypoints=websecure
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.tls.certresolver=letsencrypt
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-ui.service=${COMPOSE_PROJECT_NAME}-svc
     env_file:
       - .env
     restart: unless-stopped
