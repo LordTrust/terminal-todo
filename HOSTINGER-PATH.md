@@ -18,6 +18,7 @@ https://apps.deinedomain.de/terminal-todo/
 ```text
 COMPOSE_PROJECT_NAME=terminal-todo
 TRAEFIK_HOST=apps.deinedomain.de
+IMAGE=ghcr.io/lordtrust/terminal-todo:latest
 PATH_PREFIX=/terminal-todo
 PORT=8080
 DATABASE_PATH=/app/data/terminal_todo.db
@@ -56,8 +57,18 @@ https://apps.deinedomain.de/terminal-todo/
 1. In Hostinger Docker Manager neues Projekt anlegen
 2. Repository `LordTrust/terminal-todo` wählen
 3. Compose-Datei `docker-compose.yml` wählen
-4. `.env` setzen
+4. `.env` setzen, inklusive `IMAGE=ghcr.io/lordtrust/terminal-todo:latest`
 5. Deploy starten
+
+## Wichtig zur Fehlerursache
+
+Hostinger zieht in diesem Flow Images und startet Container, baut aber hier nicht zuverlässig aus `build: .`.
+Deshalb nutzt die Compose-Datei jetzt bewusst ein vorgebautes GHCR-Image statt lokalem Build-Kontext.
+
+## Erstes Mal nach Umstellung
+
+Nach dem Push muss zuerst der GitHub-Workflow `Publish Docker image` einmal erfolgreich laufen, damit `ghcr.io/lordtrust/terminal-todo:latest` existiert.
+Wenn GitHub das Container-Package nicht automatisch öffentlich macht, stelle das GHCR-Package einmal auf `public`, damit Hostinger es ohne Login ziehen kann.
 
 ## Empfehlung
 

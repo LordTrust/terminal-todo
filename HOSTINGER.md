@@ -20,8 +20,10 @@ Der aktuelle empfohlene Weg ist:
 
 - Repository in Hostinger Docker Manager verbinden
 - `docker-compose.yml` wählen
-- `.env` anhand von `.env.hostinger-path.example` setzen
+- `.env` anhand von `.env.hostinger-path.example` setzen, inklusive `IMAGE`
 - App unter einem Pfad wie `/terminal-todo/` betreiben
+
+Die Compose-Datei nutzt dafür bewusst ein vorgebautes GHCR-Image statt `build: .`, damit Hostinger den Container zuverlässig per Pull starten kann.
 
 ## Warum die Pfad-Variante empfohlen ist
 

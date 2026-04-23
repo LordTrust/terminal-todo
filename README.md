@@ -139,6 +139,8 @@ Wenn du willst, kannst du dort z.B. den Host-Port ändern.
 docker compose up -d --build
 ```
 
+Für Hostinger Docker Manager wird dagegen ein vorgebautes Registry-Image verwendet, nicht `build: .` direkt auf dem Host.
+
 ### 4. Port testen
 
 Wenn du den Container auf Port 8080 veröffentlicht hast:
@@ -190,6 +192,7 @@ HOSTINGER-PATH.md
 Technisch nutzt die Datei jetzt denselben Stil wie das bestehende Hostinger-OpenClaw-Setup:
 
 ```text
+image: ghcr.io/lordtrust/terminal-todo:latest
 init: true
 ports: - "${PORT}:${PORT}"
 env_file: .env
@@ -197,6 +200,8 @@ traefik.docker.network=${COMPOSE_PROJECT_NAME}_default
 traefik-http-service = ${COMPOSE_PROJECT_NAME}-svc
 ./data:/app/data
 ```
+
+Zusätzlich baut und veröffentlicht GitHub Actions bei jedem Push auf `main` automatisch das passende GHCR-Image für Hostinger.
 
 ## Backup-Empfehlung
 
