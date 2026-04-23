@@ -16,85 +16,30 @@
           <p class="eyebrow">terminal://todo-sync</p>
           <h1>Terminal ToDo</h1>
         </div>
-        <div class="header-status">
-          <span class="status-pill" id="taskCounter">0 tasks</span>
-          <span class="status-pill" id="syncStatus">syncing...</span>
-          <span class="status-pill" id="clock">--:--:--</span>
+        <div class="header-actions">
+          <div class="header-status">
+            <span class="status-pill" id="taskCounter">0 tasks</span>
+            <span class="status-pill" id="syncStatus">syncing...</span>
+            <span class="status-pill" id="clock">--:--:--</span>
+          </div>
+          <button type="button" id="menuToggleBtn" class="icon-btn" aria-label="Menü öffnen" aria-controls="settingsDrawer" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
       </header>
 
       <main class="layout">
-        <section class="panel composer-panel">
-          <div class="panel-title">Neue Aufgabe</div>
-          <form id="taskForm" class="task-form">
-            <label>
-              <span>Task</span>
-              <input id="taskInput" name="task" type="text" maxlength="140" placeholder="z.B. Docker-Deployment vorbereiten" required />
-            </label>
-
-            <div class="grid-two">
-              <label>
-                <span>Symbol-Stil</span>
-                <select id="symbolPreset" name="symbolPreset"></select>
-              </label>
-              <label>
-                <span>Task-Farbe</span>
-                <input id="taskColor" name="taskColor" type="color" value="#ff9e3d" />
-              </label>
-            </div>
-
-            <div class="grid-two">
-              <label>
-                <span>Offen</span>
-                <input id="customOpenSymbol" name="customOpenSymbol" type="text" maxlength="10" placeholder="[ ]" />
-              </label>
-              <label>
-                <span>Erledigt</span>
-                <input id="customDoneSymbol" name="customDoneSymbol" type="text" maxlength="10" placeholder="[X]" />
-              </label>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Task hinzufügen</button>
-              <button type="button" id="clearDoneBtn" class="ghost-btn">Erledigte löschen</button>
+        <section class="panel list-panel">
+          <form id="taskForm" class="composer-row" autocomplete="off">
+            <button type="submit" class="task-toggle composer-submit" aria-label="Task hinzufügen">+</button>
+            <div class="task-content">
+              <input id="taskInput" name="task" class="composer-input" type="text" maxlength="140" placeholder="Neuen Task direkt hier schreiben..." required />
+              <div class="task-meta composer-meta">Enter oder + zum Hinzufügen, Details oben rechts im Menü</div>
             </div>
           </form>
-        </section>
 
-        <section class="panel settings-panel">
-          <div class="panel-title">Theme & Verhalten</div>
-          <div class="settings-grid">
-            <label>
-              <span>Akzentfarbe</span>
-              <input id="accentColor" type="color" value="#ff9e3d" />
-            </label>
-            <label>
-              <span>Hintergrund</span>
-              <input id="backgroundColor" type="color" value="#101315" />
-            </label>
-            <label>
-              <span>Panel</span>
-              <input id="panelColor" type="color" value="#171c1f" />
-            </label>
-            <label>
-              <span>Text</span>
-              <input id="textColor" type="color" value="#ebf2ed" />
-            </label>
-            <label>
-              <span>Erledigt</span>
-              <input id="doneColor" type="color" value="#5d7a68" />
-            </label>
-            <label class="toggle-row">
-              <span>Offene zuerst</span>
-              <input id="sortOpenFirst" type="checkbox" checked />
-            </label>
-          </div>
-          <div class="settings-actions">
-            <button type="button" id="resetThemeBtn" class="ghost-btn">Orange Theme</button>
-          </div>
-        </section>
-
-        <section class="panel list-panel">
           <div class="list-toolbar">
             <div class="panel-title">Aufgabenliste</div>
             <div class="filters" id="filters">
@@ -110,6 +55,79 @@
         </section>
       </main>
     </div>
+
+    <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow">control://menu</p>
+          <h2>Theme & Verwaltung</h2>
+        </div>
+        <button type="button" id="menuCloseBtn" class="icon-btn close-btn" aria-label="Menü schließen">✕</button>
+      </div>
+
+      <section class="panel drawer-panel">
+        <div class="panel-title">Neue Tasks</div>
+        <div class="task-form">
+          <div class="grid-two">
+            <label>
+              <span>Symbol-Stil</span>
+              <select id="symbolPreset" name="symbolPreset"></select>
+            </label>
+            <label>
+              <span>Task-Farbe</span>
+              <input id="taskColor" name="taskColor" type="color" value="#ff9e3d" />
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label>
+              <span>Offen</span>
+              <input id="customOpenSymbol" name="customOpenSymbol" type="text" maxlength="10" placeholder="[ ]" />
+            </label>
+            <label>
+              <span>Erledigt</span>
+              <input id="customDoneSymbol" name="customDoneSymbol" type="text" maxlength="10" placeholder="[X]" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel drawer-panel">
+        <div class="panel-title">Theme & Verhalten</div>
+        <div class="settings-grid">
+          <label>
+            <span>Akzentfarbe</span>
+            <input id="accentColor" type="color" value="#ff9e3d" />
+          </label>
+          <label>
+            <span>Hintergrund</span>
+            <input id="backgroundColor" type="color" value="#101315" />
+          </label>
+          <label>
+            <span>Panel</span>
+            <input id="panelColor" type="color" value="#171c1f" />
+          </label>
+          <label>
+            <span>Text</span>
+            <input id="textColor" type="color" value="#ebf2ed" />
+          </label>
+          <label>
+            <span>Erledigt</span>
+            <input id="doneColor" type="color" value="#5d7a68" />
+          </label>
+          <label class="toggle-row">
+            <span>Offene zuerst</span>
+            <input id="sortOpenFirst" type="checkbox" checked />
+          </label>
+        </div>
+        <div class="settings-actions">
+          <button type="button" id="resetThemeBtn" class="ghost-btn">Orange Theme</button>
+          <button type="button" id="clearDoneBtn" class="ghost-btn">Erledigte löschen</button>
+        </div>
+      </section>
+    </aside>
 
     <template id="taskItemTemplate">
       <li class="task-item">

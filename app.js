@@ -1,5 +1,5 @@
 const API_BASE = new URL('./api', window.location.href.replace(/[#?].*$/, '')).pathname.replace(/\/$/, '');
-const UI_STORAGE_KEY = 'terminal-todo-ui-v1';
+const UI_STORAGE_KEY = 'terminal-todo-ui-v2';
 
 const symbolPresets = {
   checkbox: { label: 'Checkbox', open: '[ ]', done: '[X]' },
@@ -18,13 +18,22 @@ const defaultTheme = {
   sortOpenFirst: true,
 };
 
+const uiState = loadUiState();
+
 const state = {
   tasks: [],
-  filter: loadUiState().filter ?? 'all',
+  filter: uiState.filter ?? 'all',
   theme: { ...defaultTheme },
   syncStatus: 'syncing...',
   syncTone: 'neutral',
   lastSyncAt: null,
+  menuOpen: false,
+  composer: {
+    symbolPreset: uiState.composer?.symbolPreset ?? 'checkbox',
+    taskColor: uiState.composer?.taskColor ?? defaultTheme.accent,
+    customOpenSymbol: uiState.composer?.customOpenSymbol ?? '',
+    customDoneSymbol: uiState.composer?.customDoneSymbol ?? '',
+  },
 };
 
 const elements = {
@@ -49,6 +58,10 @@ const elements = {
   doneColor: document.querySelector('#doneColor'),
   sortOpenFirst: document.querySelector('#sortOpenFirst'),
   resetThemeBtn: document.querySelector('#resetThemeBtn'),
+  menuToggleBtn: document.querySelector('#menuToggleBtn'),
+  menuCloseBtn: document.querySelector('#menuCloseBtn'),
+  settingsDrawer: document.querySelector('#settingsDrawer'),
+  drawerBackdrop: document.querySelector('#drawerBackdrop'),
 };
 
 init();
@@ -58,6 +71,7 @@ async function init() {
   bindEvents();
   startClock();
   syncThemeControls();
+  syncComposerControls();
   render();
   await bootstrap();
   startAutoRefresh();
@@ -77,6 +91,15 @@ function bindEvents() {
   elements.clearDoneBtn.addEventListener('click', clearDoneTasks);
   elements.filters.addEventListener('click', handleFilterChange);
   elements.resetThemeBtn.addEventListener('click', resetTheme);
+  elements.menuToggleBtn.addEventListener('click', () => toggleMenu());
+  elements.menuCloseBtn.addEventListener('click', () => toggleMenu(false));
+  elements.drawerBackdrop.addEventListener('click', () => toggleMenu(false));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.menuOpen) {
+      toggleMenu(false);
+    }
+  });
 
   [
     ['accentColor', 'accent'],
@@ -96,6 +119,23 @@ function bindEvents() {
     await persistTheme();
   });
 
+  [
+    ['symbolPreset', 'symbolPreset'],
+    ['taskColor', 'taskColor'],
+    ['customOpenSymbol', 'customOpenSymbol'],
+    ['customDoneSymbol', 'customDoneSymbol'],
+  ].forEach(([elementKey, composerKey]) => {
+    elements[elementKey].addEventListener('input', (event) => {
+      state.composer[composerKey] = event.target.value;
+      persistUiState();
+    });
+
+    elements[elementKey].addEventListener('change', (event) => {
+      state.composer[composerKey] = event.target.value;
+      persistUiState();
+    });
+  });
+
   window.addEventListener('focus', () => bootstrap({ silent: true }));
 }
 
@@ -107,6 +147,7 @@ async function bootstrap(options = {}) {
     state.tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
     state.theme = { ...defaultTheme, ...(payload.theme ?? {}) };
     syncThemeControls();
+    syncComposerControls();
     setSyncStatus(`sync ok${formatLastSync()}`, 'good');
     render();
   } catch (error) {
@@ -121,9 +162,9 @@ async function handleAddTask(event) {
   const text = elements.taskInput.value.trim();
   if (!text) return;
 
-  const preset = symbolPresets[elements.symbolPreset.value] ?? symbolPresets.checkbox;
-  const customOpen = elements.customOpenSymbol.value.trim();
-  const customDone = elements.customDoneSymbol.value.trim();
+  const preset = symbolPresets[state.composer.symbolPreset] ?? symbolPresets.checkbox;
+  const customOpen = state.composer.customOpenSymbol.trim();
+  const customDone = state.composer.customDoneSymbol.trim();
 
   try {
     setSyncStatus('saving...', 'neutral');
@@ -131,15 +172,15 @@ async function handleAddTask(event) {
       method: 'POST',
       body: {
         text,
-        color: elements.taskColor.value,
+        color: state.composer.taskColor,
         symbols: {
           open: customOpen || preset.open,
           done: customDone || preset.done,
         },
       },
     });
-    event.target.reset();
-    elements.taskColor.value = state.theme.accent;
+    elements.taskInput.value = '';
+    elements.taskInput.focus();
     await bootstrap({ silent: true });
   } catch (error) {
     console.error(error);
@@ -171,6 +212,15 @@ async function resetTheme() {
   syncThemeControls();
   render();
   await persistTheme();
+}
+
+function toggleMenu(forceState) {
+  state.menuOpen = typeof forceState === 'boolean' ? forceState : !state.menuOpen;
+  elements.settingsDrawer.classList.toggle('open', state.menuOpen);
+  elements.drawerBackdrop.hidden = !state.menuOpen;
+  document.body.classList.toggle('drawer-open', state.menuOpen);
+  elements.settingsDrawer.setAttribute('aria-hidden', String(!state.menuOpen));
+  elements.menuToggleBtn.setAttribute('aria-expanded', String(state.menuOpen));
 }
 
 async function toggleTask(taskId) {
@@ -323,7 +373,17 @@ function syncThemeControls() {
   elements.textColor.value = state.theme.text;
   elements.doneColor.value = state.theme.done;
   elements.sortOpenFirst.checked = Boolean(state.theme.sortOpenFirst);
-  elements.taskColor.value = state.theme.accent;
+}
+
+function syncComposerControls() {
+  if (!state.composer.taskColor) {
+    state.composer.taskColor = state.theme.accent;
+  }
+
+  elements.symbolPreset.value = state.composer.symbolPreset;
+  elements.taskColor.value = state.composer.taskColor;
+  elements.customOpenSymbol.value = state.composer.customOpenSymbol;
+  elements.customDoneSymbol.value = state.composer.customDoneSymbol;
 }
 
 function startClock() {
@@ -396,7 +456,10 @@ function loadUiState() {
 }
 
 function persistUiState() {
-  localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({ filter: state.filter }));
+  localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({
+    filter: state.filter,
+    composer: state.composer,
+  }));
 }
 
 function hexToRgba(hex, alpha) {
