@@ -39,7 +39,9 @@ terminal-todo-app/
 ├── .env.example
 ├── app.js
 ├── Dockerfile
+├── HOSTINGER-PATH.md
 ├── HOSTINGER.md
+├── docker-compose.hostinger-path.yml
 ├── docker-compose.hostinger-traefik.example.yml
 ├── docker-compose.hostinger.yml
 ├── docker-compose.yml
@@ -187,6 +189,20 @@ ${COMPOSE_PROJECT_NAME}.${TRAEFIK_HOST}
 ```
 
 Wenn du willst, passe ich dir das auch direkt auf deine echte Domain an.
+
+Zusätzlich gibt es jetzt auch eine pfadbasierte Hostinger-Variante für URLs wie:
+
+```text
+https://apps.deinedomain.de/terminal-todo/
+```
+
+Dateien dafür:
+
+```text
+docker-compose.hostinger-path.yml
+.env.hostinger-path.example
+HOSTINGER-PATH.md
+```
 
 ## Backup-Empfehlung
 

@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = new URL('./api', window.location.href.replace(/[#?].*$/, '')).pathname.replace(/\/$/, '');
 const UI_STORAGE_KEY = 'terminal-todo-ui-v1';
 
 const symbolPresets = {
