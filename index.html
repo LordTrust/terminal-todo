@@ -33,11 +33,15 @@
       <main class="layout">
         <section class="panel list-panel">
           <form id="taskForm" class="composer-row" autocomplete="off">
-            <button type="submit" class="task-toggle composer-submit" aria-label="Task hinzufügen">+</button>
+            <button type="submit" class="task-toggle composer-submit" id="composerSubmitBtn" aria-label="Task speichern">+</button>
             <div class="task-content">
-              <input id="taskInput" name="task" class="composer-input" type="text" maxlength="140" placeholder="Neuen Task direkt hier schreiben..." required />
-              <div class="task-meta composer-meta">Enter oder + zum Hinzufügen, Details oben rechts im Menü</div>
+              <div class="composer-headline-row">
+                <input id="taskInput" name="task" class="composer-input" type="text" maxlength="140" placeholder="Neuen Task oder Termin direkt hier schreiben..." required />
+                <span id="editModeBadge" class="task-meta composer-edit-badge" hidden>Bearbeiten</span>
+              </div>
+              <div id="composerMeta" class="task-meta composer-meta">Datum und Wiederholung oben rechts im Menü</div>
             </div>
+            <button type="button" id="cancelEditBtn" class="ghost-btn small-btn cancel-edit-btn" hidden>abbrechen</button>
           </form>
 
           <div class="list-toolbar">
@@ -49,8 +53,60 @@
             </div>
           </div>
           <ul id="taskList" class="task-list"></ul>
-          <div id="emptyState" class="empty-state">
-            Noch keine Tasks. Fang mit etwas Schönem an.
+          <div id="emptyState" class="empty-state">Noch keine Tasks. Fang mit etwas Schönem an.</div>
+        </section>
+
+        <section class="panel mini-calendar-panel">
+          <div class="calendar-panel-header compact">
+            <div>
+              <p class="eyebrow">calendar://mini</p>
+              <h2>Kleiner Kalender</h2>
+            </div>
+            <button type="button" id="jumpTodayBtn" class="ghost-btn small-btn">Heute</button>
+          </div>
+          <div class="calendar-nav mini-nav">
+            <button type="button" id="miniPrevBtn" class="ghost-btn small-btn">←</button>
+            <div id="miniMonthLabel" class="status-pill month-label"></div>
+            <button type="button" id="miniNextBtn" class="ghost-btn small-btn">→</button>
+          </div>
+          <div id="miniWeekdays" class="weekday-row mini-weekdays"></div>
+          <div id="miniCalendarGrid" class="calendar-grid mini-calendar-grid"></div>
+          <div class="calendar-hint">• Punkt = etwas geplant, Klick setzt Datum vor</div>
+        </section>
+
+        <section class="panel calendar-panel full-span">
+          <div class="calendar-panel-header">
+            <div>
+              <p class="eyebrow">calendar://month-view</p>
+              <h2>Große Kalenderansicht</h2>
+            </div>
+            <div class="calendar-nav">
+              <button type="button" id="prevMonthBtn" class="ghost-btn small-btn">← Monat</button>
+              <div id="currentMonthLabel" class="status-pill month-label"></div>
+              <button type="button" id="nextMonthBtn" class="ghost-btn small-btn">Monat →</button>
+            </div>
+          </div>
+
+          <div class="calendar-layout">
+            <div class="calendar-main">
+              <div id="calendarWeekdays" class="weekday-row big-weekdays"></div>
+              <div id="calendarGrid" class="calendar-grid big-calendar-grid"></div>
+            </div>
+
+            <aside class="calendar-sidebar">
+              <div class="sidebar-block">
+                <div class="panel-title">Ausgewählter Tag</div>
+                <div id="selectedDateLabel" class="task-meta sidebar-date-label"></div>
+                <div id="selectedDateEvents" class="selected-events"></div>
+              </div>
+
+              <div class="sidebar-divider"></div>
+
+              <div class="sidebar-block">
+                <div class="panel-title">Events rechts</div>
+                <div id="monthEventList" class="month-event-list"></div>
+              </div>
+            </aside>
           </div>
         </section>
       </main>
@@ -95,6 +151,96 @@
       </section>
 
       <section class="panel drawer-panel">
+        <div class="panel-title">Termin & Wiederholung</div>
+        <div class="task-form">
+          <div class="grid-two">
+            <label>
+              <span>Fällig am</span>
+              <input id="dueDateInput" name="dueDateInput" type="date" />
+            </label>
+            <label>
+              <span>Wiederholung</span>
+              <select id="recurrenceType" name="recurrenceType">
+                <option value="none">Keine</option>
+                <option value="monthly_day_of_month">Monatlich am Kalendertag</option>
+                <option value="monthly_nth_workday">Monatlich am N. Arbeitstag</option>
+                <option value="monthly_last_workday">Monatlich am letzten Arbeitstag</option>
+                <option value="monthly_ordinal_weekday">Monatlich am Wochentag im Monat</option>
+                <option value="monthly_days_before_month_end">Monatlich X Tage vor Monatsende</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="monthDayRow" class="grid-two recurrence-row" hidden>
+            <label>
+              <span>Tag im Monat</span>
+              <input id="monthDayInput" name="monthDayInput" type="number" min="1" max="31" value="1" />
+            </label>
+            <label>
+              <span>Bei Wochenende</span>
+              <select id="monthDayShift" name="monthDayShift">
+                <option value="none">Nicht verschieben</option>
+                <option value="previous_workday">Vorheriger Arbeitstag</option>
+                <option value="next_workday">Nächster Arbeitstag</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="nthWorkdayRow" class="grid-two recurrence-row" hidden>
+            <label>
+              <span>N. Arbeitstag</span>
+              <input id="nthWorkdayInput" name="nthWorkdayInput" type="number" min="1" max="23" value="12" />
+            </label>
+            <div class="info-card">Arbeitstag = Montag bis Freitag</div>
+          </div>
+
+          <div id="lastWorkdayRow" class="recurrence-row" hidden>
+            <div class="info-card">Letzter Arbeitstag = letzter Montag bis Freitag im Monat</div>
+          </div>
+
+          <div id="ordinalWeekdayRow" class="grid-two recurrence-row" hidden>
+            <label>
+              <span>Position</span>
+              <select id="ordinalSelect" name="ordinalSelect">
+                <option value="1">1.</option>
+                <option value="2">2.</option>
+                <option value="3">3.</option>
+                <option value="4">4.</option>
+                <option value="-1">Letzter</option>
+              </select>
+            </label>
+            <label>
+              <span>Wochentag</span>
+              <select id="weekdaySelect" name="weekdaySelect">
+                <option value="0">Montag</option>
+                <option value="1">Dienstag</option>
+                <option value="2">Mittwoch</option>
+                <option value="3">Donnerstag</option>
+                <option value="4">Freitag</option>
+                <option value="5">Samstag</option>
+                <option value="6">Sonntag</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="daysBeforeEndRow" class="grid-two recurrence-row" hidden>
+            <label>
+              <span>Tage vor Monatsende</span>
+              <input id="daysBeforeEndInput" name="daysBeforeEndInput" type="number" min="0" max="30" value="3" />
+            </label>
+            <label>
+              <span>Bei Wochenende</span>
+              <select id="daysBeforeEndShift" name="daysBeforeEndShift">
+                <option value="none">Nicht verschieben</option>
+                <option value="previous_workday">Vorheriger Arbeitstag</option>
+                <option value="next_workday">Nächster Arbeitstag</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel drawer-panel">
         <div class="panel-title">Theme & Verhalten</div>
         <div class="settings-grid">
           <label>
@@ -133,11 +279,17 @@
       <li class="task-item">
         <button class="task-toggle" type="button"></button>
         <div class="task-content">
-          <div class="task-text"></div>
+          <div class="task-text-row">
+            <div class="task-text"></div>
+            <span class="task-badge recurring-badge" hidden>↻ wiederholt</span>
+            <span class="task-badge overdue-badge" hidden>überfällig</span>
+          </div>
           <div class="task-meta"></div>
         </div>
         <div class="task-actions">
           <input class="task-color-input" type="color" />
+          <button class="ghost-btn small-btn task-jump" type="button">springen</button>
+          <button class="ghost-btn small-btn task-edit" type="button">edit</button>
           <button class="ghost-btn small-btn task-delete" type="button">löschen</button>
         </div>
       </li>
