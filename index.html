@@ -30,7 +30,49 @@
         </div>
       </header>
 
-      <main class="layout">
+      <main class="main-stack">
+        <section class="panel overview-panel">
+          <button type="button" id="calendarOverviewHeaderBtn" class="calendar-header-trigger">
+            <div>
+              <p class="eyebrow">calendar://overview</p>
+              <h2>Kalenderübersicht</h2>
+            </div>
+            <span class="task-meta header-trigger-meta">Klick für große Ansicht</span>
+          </button>
+
+          <div class="overview-layout">
+            <div class="calendar-overview-block">
+              <div class="calendar-nav compact-nav">
+                <button type="button" id="prevMonthBtn" class="ghost-btn small-btn">← Monat</button>
+                <div id="overviewMonthLabel" class="status-pill month-label"></div>
+                <button type="button" id="nextMonthBtn" class="ghost-btn small-btn">Monat →</button>
+                <button type="button" id="jumpTodayBtn" class="ghost-btn small-btn">Heute</button>
+              </div>
+              <div id="overviewWeekdays" class="weekday-row"></div>
+              <div id="overviewCalendarGrid" class="calendar-grid overview-calendar-grid"></div>
+            </div>
+
+            <aside class="overview-sidebar">
+              <div class="sidebar-block">
+                <div class="panel-title">Gewählter Tag</div>
+                <div id="overviewSelectedDateLabel" class="task-meta sidebar-date-label"></div>
+                <div id="overviewDayEvents" class="selected-events"></div>
+                <div class="sidebar-actions">
+                  <button type="button" id="createForSelectedDateBtn" class="ghost-btn small-btn">Neu für Tag</button>
+                  <button type="button" id="openLargeCalendarBtn" class="ghost-btn small-btn">Großansicht</button>
+                </div>
+              </div>
+
+              <div class="sidebar-divider"></div>
+
+              <div class="sidebar-block">
+                <div class="panel-title">Nächste Termine</div>
+                <div id="upcomingEventList" class="month-event-list"></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
         <section class="panel list-panel">
           <form id="taskForm" class="composer-row" autocomplete="off">
             <button type="submit" class="task-toggle composer-submit" id="composerSubmitBtn" aria-label="Task speichern">+</button>
@@ -45,7 +87,7 @@
           </form>
 
           <div class="list-toolbar">
-            <div class="panel-title">Aufgabenliste</div>
+            <div class="panel-title">Todos</div>
             <div class="filters" id="filters">
               <button class="filter-btn active" data-filter="all" type="button">Alle</button>
               <button class="filter-btn" data-filter="open" type="button">Offen</button>
@@ -55,62 +97,49 @@
           <ul id="taskList" class="task-list"></ul>
           <div id="emptyState" class="empty-state">Noch keine Tasks. Fang mit etwas Schönem an.</div>
         </section>
-
-        <section class="panel mini-calendar-panel">
-          <div class="calendar-panel-header compact">
-            <div>
-              <p class="eyebrow">calendar://mini</p>
-              <h2>Kleiner Kalender</h2>
-            </div>
-            <button type="button" id="jumpTodayBtn" class="ghost-btn small-btn">Heute</button>
-          </div>
-          <div class="calendar-nav mini-nav">
-            <button type="button" id="miniPrevBtn" class="ghost-btn small-btn">←</button>
-            <div id="miniMonthLabel" class="status-pill month-label"></div>
-            <button type="button" id="miniNextBtn" class="ghost-btn small-btn">→</button>
-          </div>
-          <div id="miniWeekdays" class="weekday-row mini-weekdays"></div>
-          <div id="miniCalendarGrid" class="calendar-grid mini-calendar-grid"></div>
-          <div class="calendar-hint">• Punkt = etwas geplant, Klick setzt Datum vor</div>
-        </section>
-
-        <section class="panel calendar-panel full-span">
-          <div class="calendar-panel-header">
-            <div>
-              <p class="eyebrow">calendar://month-view</p>
-              <h2>Große Kalenderansicht</h2>
-            </div>
-            <div class="calendar-nav">
-              <button type="button" id="prevMonthBtn" class="ghost-btn small-btn">← Monat</button>
-              <div id="currentMonthLabel" class="status-pill month-label"></div>
-              <button type="button" id="nextMonthBtn" class="ghost-btn small-btn">Monat →</button>
-            </div>
-          </div>
-
-          <div class="calendar-layout">
-            <div class="calendar-main">
-              <div id="calendarWeekdays" class="weekday-row big-weekdays"></div>
-              <div id="calendarGrid" class="calendar-grid big-calendar-grid"></div>
-            </div>
-
-            <aside class="calendar-sidebar">
-              <div class="sidebar-block">
-                <div class="panel-title">Ausgewählter Tag</div>
-                <div id="selectedDateLabel" class="task-meta sidebar-date-label"></div>
-                <div id="selectedDateEvents" class="selected-events"></div>
-              </div>
-
-              <div class="sidebar-divider"></div>
-
-              <div class="sidebar-block">
-                <div class="panel-title">Events rechts</div>
-                <div id="monthEventList" class="month-event-list"></div>
-              </div>
-            </aside>
-          </div>
-        </section>
       </main>
     </div>
+
+    <div id="calendarModalBackdrop" class="modal-backdrop" hidden></div>
+    <section id="calendarModal" class="calendar-modal" hidden aria-hidden="true">
+      <div class="calendar-modal-header">
+        <div>
+          <p class="eyebrow">calendar://full</p>
+          <h2>Große Kalenderansicht</h2>
+        </div>
+        <div class="calendar-nav compact-nav">
+          <button type="button" id="modalPrevMonthBtn" class="ghost-btn small-btn">← Monat</button>
+          <div id="modalMonthLabel" class="status-pill month-label"></div>
+          <button type="button" id="modalNextMonthBtn" class="ghost-btn small-btn">Monat →</button>
+          <button type="button" id="closeCalendarModalBtn" class="ghost-btn small-btn">Schließen</button>
+        </div>
+      </div>
+
+      <div class="calendar-layout modal-layout">
+        <div class="calendar-main">
+          <div id="modalWeekdays" class="weekday-row"></div>
+          <div id="modalCalendarGrid" class="calendar-grid modal-calendar-grid"></div>
+        </div>
+
+        <aside class="calendar-sidebar">
+          <div class="sidebar-block">
+            <div class="panel-title">Gewählter Tag</div>
+            <div id="modalSelectedDateLabel" class="task-meta sidebar-date-label"></div>
+            <div id="modalSelectedDateEvents" class="selected-events"></div>
+            <div class="sidebar-actions">
+              <button type="button" id="createForSelectedDateModalBtn" class="ghost-btn small-btn">Neu für Tag</button>
+            </div>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="sidebar-block">
+            <div class="panel-title">Monatsliste</div>
+            <div id="monthEventList" class="month-event-list"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
 
     <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
 

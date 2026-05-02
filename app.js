@@ -1,5 +1,5 @@
 const API_BASE = new URL('./api', window.location.href.replace(/[#?].*$/, '')).pathname.replace(/\/$/, '');
-const UI_STORAGE_KEY = 'terminal-todo-ui-v4';
+const UI_STORAGE_KEY = 'terminal-todo-ui-v5';
 
 const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const WEEKDAY_LONG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
@@ -45,6 +45,7 @@ const defaultComposer = {
 };
 
 const uiState = loadUiState();
+const initialSelectedDate = uiState.selectedDate ?? toIsoDate(new Date());
 
 const state = {
   tasks: [],
@@ -54,11 +55,12 @@ const state = {
   syncTone: 'neutral',
   lastSyncAt: null,
   menuOpen: false,
+  calendarModalOpen: false,
   editingTaskId: null,
   composer: { ...defaultComposer, ...(uiState.composer ?? {}) },
   calendar: {
-    selectedDate: uiState.selectedDate ?? toIsoDate(new Date()),
-    currentMonth: startOfMonth(parseIsoDate(uiState.selectedDate ?? toIsoDate(new Date()))),
+    selectedDate: initialSelectedDate,
+    currentMonth: startOfMonth(parseIsoDate(initialSelectedDate)),
   },
 };
 
@@ -106,20 +108,30 @@ const elements = {
   menuCloseBtn: document.querySelector('#menuCloseBtn'),
   settingsDrawer: document.querySelector('#settingsDrawer'),
   drawerBackdrop: document.querySelector('#drawerBackdrop'),
-  miniWeekdays: document.querySelector('#miniWeekdays'),
-  calendarWeekdays: document.querySelector('#calendarWeekdays'),
-  miniCalendarGrid: document.querySelector('#miniCalendarGrid'),
-  calendarGrid: document.querySelector('#calendarGrid'),
-  miniMonthLabel: document.querySelector('#miniMonthLabel'),
-  currentMonthLabel: document.querySelector('#currentMonthLabel'),
-  miniPrevBtn: document.querySelector('#miniPrevBtn'),
-  miniNextBtn: document.querySelector('#miniNextBtn'),
+  calendarOverviewHeaderBtn: document.querySelector('#calendarOverviewHeaderBtn'),
+  openLargeCalendarBtn: document.querySelector('#openLargeCalendarBtn'),
   prevMonthBtn: document.querySelector('#prevMonthBtn'),
   nextMonthBtn: document.querySelector('#nextMonthBtn'),
   jumpTodayBtn: document.querySelector('#jumpTodayBtn'),
-  selectedDateLabel: document.querySelector('#selectedDateLabel'),
-  selectedDateEvents: document.querySelector('#selectedDateEvents'),
+  overviewWeekdays: document.querySelector('#overviewWeekdays'),
+  overviewCalendarGrid: document.querySelector('#overviewCalendarGrid'),
+  overviewMonthLabel: document.querySelector('#overviewMonthLabel'),
+  overviewSelectedDateLabel: document.querySelector('#overviewSelectedDateLabel'),
+  overviewDayEvents: document.querySelector('#overviewDayEvents'),
+  upcomingEventList: document.querySelector('#upcomingEventList'),
+  createForSelectedDateBtn: document.querySelector('#createForSelectedDateBtn'),
+  calendarModalBackdrop: document.querySelector('#calendarModalBackdrop'),
+  calendarModal: document.querySelector('#calendarModal'),
+  closeCalendarModalBtn: document.querySelector('#closeCalendarModalBtn'),
+  modalPrevMonthBtn: document.querySelector('#modalPrevMonthBtn'),
+  modalNextMonthBtn: document.querySelector('#modalNextMonthBtn'),
+  modalMonthLabel: document.querySelector('#modalMonthLabel'),
+  modalWeekdays: document.querySelector('#modalWeekdays'),
+  modalCalendarGrid: document.querySelector('#modalCalendarGrid'),
+  modalSelectedDateLabel: document.querySelector('#modalSelectedDateLabel'),
+  modalSelectedDateEvents: document.querySelector('#modalSelectedDateEvents'),
   monthEventList: document.querySelector('#monthEventList'),
+  createForSelectedDateModalBtn: document.querySelector('#createForSelectedDateModalBtn'),
 };
 
 init();
@@ -147,7 +159,7 @@ function populatePresets() {
 }
 
 function renderWeekdayHeaders() {
-  [elements.miniWeekdays, elements.calendarWeekdays].forEach((container) => {
+  [elements.overviewWeekdays, elements.modalWeekdays].forEach((container) => {
     container.innerHTML = '';
     WEEKDAY_LABELS.forEach((label) => {
       const node = document.createElement('div');
@@ -167,14 +179,28 @@ function bindEvents() {
   elements.menuToggleBtn.addEventListener('click', () => toggleMenu());
   elements.menuCloseBtn.addEventListener('click', () => toggleMenu(false));
   elements.drawerBackdrop.addEventListener('click', () => toggleMenu(false));
-  elements.miniPrevBtn.addEventListener('click', () => shiftCalendarMonth(-1));
-  elements.miniNextBtn.addEventListener('click', () => shiftCalendarMonth(1));
+
+  elements.calendarOverviewHeaderBtn.addEventListener('click', () => toggleCalendarModal(true));
+  elements.openLargeCalendarBtn.addEventListener('click', () => toggleCalendarModal(true));
+  elements.closeCalendarModalBtn.addEventListener('click', () => toggleCalendarModal(false));
+  elements.calendarModalBackdrop.addEventListener('click', () => toggleCalendarModal(false));
+
   elements.prevMonthBtn.addEventListener('click', () => shiftCalendarMonth(-1));
   elements.nextMonthBtn.addEventListener('click', () => shiftCalendarMonth(1));
+  elements.modalPrevMonthBtn.addEventListener('click', () => shiftCalendarMonth(-1));
+  elements.modalNextMonthBtn.addEventListener('click', () => shiftCalendarMonth(1));
   elements.jumpTodayBtn.addEventListener('click', () => focusDate(toIsoDate(new Date())));
 
+  elements.createForSelectedDateBtn.addEventListener('click', () => openComposerForDate(state.calendar.selectedDate));
+  elements.createForSelectedDateModalBtn.addEventListener('click', () => openComposerForDate(state.calendar.selectedDate));
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && state.menuOpen) {
+    if (event.key !== 'Escape') return;
+    if (state.calendarModalOpen) {
+      toggleCalendarModal(false);
+      return;
+    }
+    if (state.menuOpen) {
       toggleMenu(false);
     }
   });
@@ -263,8 +289,8 @@ async function handleSubmitTask(event) {
         body: payload,
       });
     }
-
-    resetComposer();
+    const preserveDate = state.composer.dueDate;
+    resetComposer({ preserveDate });
     await bootstrap({ silent: true });
   } catch (error) {
     console.error(error);
@@ -360,6 +386,14 @@ function toggleMenu(forceState) {
   elements.menuToggleBtn.setAttribute('aria-expanded', String(state.menuOpen));
 }
 
+function toggleCalendarModal(forceState) {
+  state.calendarModalOpen = typeof forceState === 'boolean' ? forceState : !state.calendarModalOpen;
+  elements.calendarModal.hidden = !state.calendarModalOpen;
+  elements.calendarModalBackdrop.hidden = !state.calendarModalOpen;
+  elements.calendarModal.setAttribute('aria-hidden', String(!state.calendarModalOpen));
+  document.body.classList.toggle('modal-open', state.calendarModalOpen);
+}
+
 async function toggleTask(taskId) {
   const task = state.tasks.find((entry) => entry.id === taskId);
   if (!task) return;
@@ -378,7 +412,7 @@ async function toggleTask(taskId) {
 
 async function deleteTask(taskId) {
   if (state.editingTaskId === taskId) {
-    resetComposer();
+    resetComposer({ preserveDate: state.composer.dueDate });
   }
 
   try {
@@ -509,7 +543,6 @@ function renderTasks() {
     toggle.addEventListener('click', () => toggleTask(task.id));
 
     text.textContent = task.text;
-
     recurringBadge.hidden = !task.recurrence;
     overdueBadge.hidden = !overdue;
 
@@ -543,19 +576,23 @@ function renderCalendars() {
   const monthDate = state.calendar.currentMonth;
   const events = getCalendarEventsForMonth(monthDate);
   const eventsByDate = groupEventsByDate(events);
-  const selectedDate = parseIsoDate(state.calendar.selectedDate);
+  const selectedKey = state.calendar.selectedDate;
 
-  elements.miniMonthLabel.textContent = formatMonthLabel(monthDate);
-  elements.currentMonthLabel.textContent = formatMonthLabel(monthDate);
+  elements.overviewMonthLabel.textContent = formatMonthLabel(monthDate);
+  elements.modalMonthLabel.textContent = formatMonthLabel(monthDate);
 
-  renderCalendarGrid(elements.miniCalendarGrid, monthDate, eventsByDate, { mini: true });
-  renderCalendarGrid(elements.calendarGrid, monthDate, eventsByDate, { mini: false });
-  renderSelectedDateEvents(selectedDate, eventsByDate);
-  renderMonthEventList(events);
+  renderCalendarGrid(elements.overviewCalendarGrid, monthDate, eventsByDate, { compact: true });
+  renderCalendarGrid(elements.modalCalendarGrid, monthDate, eventsByDate, { compact: false });
+
+  renderDatePanel(elements.overviewSelectedDateLabel, elements.overviewDayEvents, selectedKey, eventsByDate, 'Keine Einträge an diesem Tag.');
+  renderDatePanel(elements.modalSelectedDateLabel, elements.modalSelectedDateEvents, selectedKey, eventsByDate, 'Keine Einträge an diesem Tag.');
+
+  renderEventList(elements.upcomingEventList, getUpcomingEvents(8), 'Keine anstehenden Termine.');
+  renderEventList(elements.monthEventList, events, 'Keine Einträge in diesem Monat.');
 }
 
 function renderCalendarGrid(container, monthDate, eventsByDate, options = {}) {
-  const { mini = false } = options;
+  const { compact = false } = options;
   const cells = buildMonthCells(monthDate);
   container.innerHTML = '';
 
@@ -569,7 +606,7 @@ function renderCalendarGrid(container, monthDate, eventsByDate, options = {}) {
     if (dateKey === state.calendar.selectedDate) button.classList.add('selected');
     if (isToday(cellDate)) button.classList.add('today');
     if (events.length) button.classList.add('has-events');
-    button.addEventListener('click', () => focusDate(dateKey, { prefillComposer: true, openMenu: true }));
+    button.addEventListener('click', () => focusDate(dateKey));
 
     const dayNumber = document.createElement('div');
     dayNumber.className = 'day-number';
@@ -586,14 +623,12 @@ function renderCalendarGrid(container, monthDate, eventsByDate, options = {}) {
     });
     button.appendChild(dots);
 
-    if (!mini) {
+    if (!compact) {
       const stack = document.createElement('div');
       stack.className = 'day-event-stack';
       events.slice(0, 2).forEach((event) => {
         const preview = document.createElement('div');
         preview.className = 'event-preview';
-        if (event.recurring) preview.classList.add('recurring');
-        if (event.overdue) preview.classList.add('overdue');
         preview.style.borderLeft = `3px solid ${event.color}`;
         preview.textContent = event.recurring ? `↻ ${event.text}` : event.text;
         stack.appendChild(preview);
@@ -611,32 +646,21 @@ function renderCalendarGrid(container, monthDate, eventsByDate, options = {}) {
   });
 }
 
-function renderSelectedDateEvents(selectedDate, eventsByDate) {
-  const selectedKey = toIsoDate(selectedDate);
+function renderDatePanel(labelEl, listEl, selectedKey, eventsByDate, emptyText) {
+  labelEl.textContent = formatDateLong(selectedKey);
   const events = eventsByDate.get(selectedKey) ?? [];
-  elements.selectedDateLabel.textContent = formatDateLong(selectedKey);
-  elements.selectedDateEvents.innerHTML = '';
-
-  if (!events.length) {
-    elements.selectedDateEvents.appendChild(buildEmptyState('Keine Einträge an diesem Tag.'));
-    return;
-  }
-
-  events.forEach((event) => {
-    elements.selectedDateEvents.appendChild(buildEventChip(event, { active: true }));
-  });
+  renderEventList(listEl, events, emptyText);
 }
 
-function renderMonthEventList(events) {
-  elements.monthEventList.innerHTML = '';
+function renderEventList(container, events, emptyText) {
+  container.innerHTML = '';
   if (!events.length) {
-    elements.monthEventList.appendChild(buildEmptyState('Keine Einträge in diesem Monat.'));
+    container.appendChild(buildEmptyState(emptyText));
     return;
   }
 
   events.forEach((event) => {
-    const active = event.dateStr === state.calendar.selectedDate;
-    elements.monthEventList.appendChild(buildEventChip(event, { active }));
+    container.appendChild(buildEventChip(event, { active: event.dateStr === state.calendar.selectedDate }));
   });
 }
 
@@ -676,6 +700,25 @@ function getCalendarEventsForMonth(monthDate) {
     .sort((a, b) => a.date.getTime() - b.date.getTime() || a.text.localeCompare(b.text, 'de'));
 }
 
+function getUpcomingEvents(limit = 8) {
+  const today = startOfDay(new Date());
+  const monthStarts = Array.from({ length: 4 }, (_, offset) => addMonths(startOfMonth(today), offset));
+  const events = monthStarts
+    .flatMap((monthDate) => getCalendarEventsForMonth(monthDate))
+    .filter((event) => event.date >= today)
+    .sort((a, b) => a.date.getTime() - b.date.getTime() || a.text.localeCompare(b.text, 'de'));
+
+  const unique = [];
+  const seen = new Set();
+  events.forEach((event) => {
+    const key = `${event.taskId}:${event.dateStr}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    unique.push(event);
+  });
+  return unique.slice(0, limit);
+}
+
 function buildTaskEventsForMonth(task, monthDate) {
   if (!task.dueDate) return [];
 
@@ -699,7 +742,7 @@ function makeEvent(task, occurrenceDate, metaLabel) {
     dateStr: toIsoDate(occurrenceDate),
     metaLabel,
     recurring: Boolean(task.recurrence),
-    overdue: !task.done && toIsoDate(occurrenceDate) < toIsoDate(new Date()),
+    overdue: !task.done && occurrenceDate < startOfDay(new Date()),
   };
 }
 
@@ -749,7 +792,7 @@ function applyTheme() {
   root.style.setProperty('--panel-border', `${state.theme.accent}33`);
 
   document.body.style.background = `radial-gradient(circle at top right, ${state.theme.accent}14, transparent 22%), linear-gradient(180deg, #0d1011 0%, ${state.theme.background} 100%)`;
-  document.querySelectorAll('.panel').forEach((panel) => {
+  document.querySelectorAll('.panel, .calendar-modal').forEach((panel) => {
     panel.style.background = `linear-gradient(180deg, ${hexToRgba(state.theme.panel, 0.92)}, ${hexToRgba(state.theme.panel, 0.82)})`;
   });
 }
@@ -793,12 +836,11 @@ function syncRecurrenceVisibility() {
 }
 
 function resetComposer(options = {}) {
-  const { preserveDate = false } = options;
-  const selectedDate = state.composer.dueDate;
+  const { preserveDate = '' } = options;
   state.editingTaskId = null;
   state.composer = {
     ...defaultComposer,
-    dueDate: preserveDate ? selectedDate : '',
+    dueDate: preserveDate || '',
     taskColor: state.theme.accent,
   };
   syncComposerControls();
@@ -809,7 +851,7 @@ function resetComposer(options = {}) {
 }
 
 function cancelEditing() {
-  resetComposer({ preserveDate: true });
+  resetComposer({ preserveDate: state.composer.dueDate });
 }
 
 function startEditing(taskId) {
@@ -827,13 +869,15 @@ function startEditing(taskId) {
 
   if (task.recurrence) {
     state.composer.recurrenceType = task.recurrence.kind;
-    if (task.recurrence.nth) state.composer.nthWorkday = String(task.recurrence.nth);
+    if (task.recurrence.nth !== undefined) state.composer.nthWorkday = String(task.recurrence.nth);
     if (task.recurrence.ordinal !== undefined) state.composer.ordinal = String(task.recurrence.ordinal);
     if (task.recurrence.weekday !== undefined) state.composer.weekday = String(task.recurrence.weekday);
     if (task.recurrence.day !== undefined) state.composer.monthDay = String(task.recurrence.day);
-    if (task.recurrence.shift) state.composer.monthDayShift = task.recurrence.shift;
     if (task.recurrence.daysBefore !== undefined) state.composer.daysBeforeEnd = String(task.recurrence.daysBefore);
-    if (task.recurrence.shift) state.composer.daysBeforeEndShift = task.recurrence.shift;
+    if (task.recurrence.shift) {
+      state.composer.monthDayShift = task.recurrence.shift;
+      state.composer.daysBeforeEndShift = task.recurrence.shift;
+    }
   }
 
   elements.taskInput.value = task.text;
@@ -846,11 +890,10 @@ function startEditing(taskId) {
   elements.taskInput.select();
 }
 
-function prefillComposerDate(isoDate) {
-  state.composer.dueDate = isoDate;
-  syncComposerControls();
-  renderComposerState();
-  persistUiState();
+function openComposerForDate(dateStr) {
+  resetComposer({ preserveDate: dateStr });
+  toggleMenu(true);
+  elements.taskInput.focus();
 }
 
 function startClock() {
@@ -928,15 +971,9 @@ function formatMonthLabel(monthDate) {
 
 function formatRecurrence(rule) {
   if (!rule) return 'Einmalig';
-  if (rule.kind === 'monthly_nth_workday') {
-    return `${rule.nth}. Arbeitstag im Monat`;
-  }
-  if (rule.kind === 'monthly_last_workday') {
-    return 'letzter Arbeitstag im Monat';
-  }
-  if (rule.kind === 'monthly_ordinal_weekday') {
-    return `${ORDINAL_LABELS[String(rule.ordinal)]} ${WEEKDAY_LONG[Number(rule.weekday)]} im Monat`;
-  }
+  if (rule.kind === 'monthly_nth_workday') return `${rule.nth}. Arbeitstag im Monat`;
+  if (rule.kind === 'monthly_last_workday') return 'letzter Arbeitstag im Monat';
+  if (rule.kind === 'monthly_ordinal_weekday') return `${ORDINAL_LABELS[String(rule.ordinal)]} ${WEEKDAY_LONG[Number(rule.weekday)]} im Monat`;
   if (rule.kind === 'monthly_day_of_month') {
     const shiftMap = {
       none: '',
@@ -961,19 +998,11 @@ function isTaskOverdue(task) {
   return parseIsoDate(task.dueDate) < startOfDay(new Date());
 }
 
-function focusDate(isoDate, options = {}) {
-  const { prefillComposer = false, openMenu = false } = options;
+function focusDate(isoDate) {
   state.calendar.selectedDate = isoDate;
   state.calendar.currentMonth = startOfMonth(parseIsoDate(isoDate));
-  if (prefillComposer) {
-    prefillComposerDate(isoDate);
-  }
   persistUiState();
   render();
-  if (openMenu) {
-    toggleMenu(true);
-    elements.taskInput.focus();
-  }
 }
 
 function shiftCalendarMonth(delta) {
