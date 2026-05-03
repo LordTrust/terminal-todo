@@ -378,7 +378,11 @@ async function resetTheme() {
 }
 
 function toggleMenu(forceState) {
-  state.menuOpen = typeof forceState === 'boolean' ? forceState : !state.menuOpen;
+  const nextState = typeof forceState === 'boolean' ? forceState : !state.menuOpen;
+  if (nextState && state.calendarModalOpen) {
+    toggleCalendarModal(false);
+  }
+  state.menuOpen = nextState;
   elements.settingsDrawer.classList.toggle('open', state.menuOpen);
   elements.drawerBackdrop.hidden = !state.menuOpen;
   document.body.classList.toggle('drawer-open', state.menuOpen);
@@ -387,7 +391,11 @@ function toggleMenu(forceState) {
 }
 
 function toggleCalendarModal(forceState) {
-  state.calendarModalOpen = typeof forceState === 'boolean' ? forceState : !state.calendarModalOpen;
+  const nextState = typeof forceState === 'boolean' ? forceState : !state.calendarModalOpen;
+  if (nextState && state.menuOpen) {
+    toggleMenu(false);
+  }
+  state.calendarModalOpen = nextState;
   elements.calendarModal.hidden = !state.calendarModalOpen;
   elements.calendarModalBackdrop.hidden = !state.calendarModalOpen;
   elements.calendarModal.setAttribute('aria-hidden', String(!state.calendarModalOpen));
@@ -546,7 +554,7 @@ function renderTasks() {
     recurringBadge.hidden = !task.recurrence;
     overdueBadge.hidden = !overdue;
 
-    const metaParts = [task.done ? 'done' : 'open'];
+    const metaParts = [task.done ? 'erledigt' : 'offen'];
     if (task.dueDate) metaParts.push(`fällig ${formatDateOnly(task.dueDate)}`);
     if (task.recurrence) metaParts.push(formatRecurrence(task.recurrence));
     if (task.lastCompletedAt) metaParts.push(`zuletzt ${formatDate(task.lastCompletedAt)}`);
@@ -892,6 +900,7 @@ function startEditing(taskId) {
 
 function openComposerForDate(dateStr) {
   resetComposer({ preserveDate: dateStr });
+  toggleCalendarModal(false);
   toggleMenu(true);
   elements.taskInput.focus();
 }
